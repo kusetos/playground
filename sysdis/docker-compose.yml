@@ -1,0 +1,54 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: my_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mysecretpassword
+      POSTGRES_DB: mydatabase
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres-init/setup-replication.sh:/docker-entrypoint-initdb.d/setup-replication.sh
+    networks:
+      - app_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U myuser -d mydatabase"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres_replica:
+    image: postgres:16-alpine
+    container_name: my_postgres_replica
+    restart: unless-stopped
+    environment:
+      PGDATA: /var/lib/postgresql/data
+      PGUSER: myuser
+      PGPASSWORD: mysecretpassword
+      REPLICATION_PASSWORD: replpass
+    entrypoint: ["/scripts/replica-entrypoint.sh"]
+    volumes:
+      - postgres_replica_data:/var/lib/postgresql/data
+      - ./postgres-init/replica-entrypoint.sh:/scripts/replica-entrypoint.sh
+    ports:
+      - "5433:5432"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - app_network
+
+  redis:
+    # ...unchanged...
+
+volumes:
+  postgres_data:
+  postgres_replica_data:
+  redis_data:
+
+networks:
+  app_network:
+    driver: bridge
