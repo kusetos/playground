@@ -41,12 +41,68 @@ services:
     networks:
       - app_network
 
+  postgres_shard_0:
+    image: postgres:16-alpine
+    container_name: my_postgres_shard_0
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mysecretpassword
+      POSTGRES_DB: mydatabase
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_shard_0_data:/var/lib/postgresql/data
+    networks:
+      - app_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U myuser -d mydatabase"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres_shard_1:
+    image: postgres:16-alpine
+    container_name: my_postgres_shard_1
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mysecretpassword
+      POSTGRES_DB: mydatabase
+    ports:
+      - "5435:5432"
+    volumes:
+      - postgres_shard_1_data:/var/lib/postgresql/data
+    networks:
+      - app_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U myuser -d mydatabase"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   redis:
-    # ...unchanged...
+    image: redis:7-alpine
+    container_name: my_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - app_network
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
   postgres_data:
   postgres_replica_data:
+  postgres_shard_0_data:
+  postgres_shard_1_data:
   redis_data:
 
 networks:

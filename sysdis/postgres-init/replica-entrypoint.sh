@@ -18,4 +18,4 @@ if [ -z "$(ls -A "$PGDATA" 2>/dev/null)" ]; then
   echo "[replica] Clone complete, starting as standby."
 fi
 
-exec docker-entrypoint.sh postgres
+exec docker-entrypoint.sh postgres -c recovery_min_apply_delay=2s
